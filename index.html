@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#52b788">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Stretch Daily</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ── HOME VIEW ─────────────────────────────────────── -->
+    <div id="view-home" class="view">
+      <header class="app-header">
+        <div class="header-logo">🧘 Stretch Daily</div>
+        <button class="icon-btn" onclick="showView('history')" aria-label="History">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </button>
+      </header>
+
+      <div class="card status-card" id="today-status"></div>
+
+      <div class="card streak-card" id="streak-display"></div>
+
+      <button class="btn-primary" id="start-btn" onclick="startSession()">Start Session</button>
+
+      <div class="card">
+        <div class="section-title">Last 7 Days</div>
+        <div id="week-grid" class="week-grid"></div>
+      </div>
+    </div>
+
+    <!-- ── SESSION VIEW ───────────────────────────────────── -->
+    <div id="view-session" class="view">
+      <div class="session-header">
+        <button class="icon-btn" onclick="quitSession()" aria-label="Quit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="session-progress"></div>
+        </div>
+        <span class="progress-text" id="progress-text">1 / 8</span>
+      </div>
+
+      <div class="session-content">
+        <div class="exercise-name" id="exercise-name"></div>
+        <div class="step-label" id="step-label"></div>
+        <div class="side-badge-wrap">
+          <span class="side-badge" id="side-badge"></span>
+        </div>
+
+        <div class="timer-wrapper">
+          <svg class="timer-ring" viewBox="0 0 220 220" aria-hidden="true">
+            <circle class="ring-bg" cx="110" cy="110" r="94"/>
+            <circle class="ring-fg" id="ring-fg" cx="110" cy="110" r="94"/>
+          </svg>
+          <div class="timer-display" id="timer-display">0:30</div>
+        </div>
+
+        <div class="hint-text" id="hint-text"></div>
+      </div>
+
+      <div class="session-controls">
+        <button class="btn-secondary" id="pause-btn" onclick="togglePause()">Pause</button>
+        <button class="btn-secondary" onclick="skipStep()">Skip →</button>
+      </div>
+    </div>
+
+    <!-- ── HISTORY VIEW ───────────────────────────────────── -->
+    <div id="view-history" class="view">
+      <header class="app-header">
+        <button class="icon-btn back-btn" onclick="showView('home')" aria-label="Back">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <div class="header-logo">History</div>
+        <div style="width:44px"></div>
+      </header>
+
+      <div class="card calendar-card">
+        <div class="calendar-nav">
+          <button class="icon-btn" onclick="changeMonth(-1)" aria-label="Previous month">&#8249;</button>
+          <div class="calendar-month-label" id="calendar-header"></div>
+          <button class="icon-btn" onclick="changeMonth(1)" aria-label="Next month">&#8250;</button>
+        </div>
+        <div class="calendar-day-names" id="cal-day-names"></div>
+        <div class="calendar-grid" id="calendar-grid"></div>
+      </div>
+
+      <div class="card stats-card" id="stats-grid"></div>
+    </div>
+
+    <!-- ── EXERCISE TRANSITION OVERLAY ───────────────────── -->
+    <div id="overlay-transition" class="overlay hidden">
+      <div class="overlay-box">
+        <div class="overlay-check">✓</div>
+        <div class="overlay-sub">Next up</div>
+        <div class="overlay-next-name" id="overlay-next-name"></div>
+        <div class="overlay-countdown" id="overlay-countdown">3</div>
+        <button class="btn-primary overlay-btn" onclick="dismissTransition()">Let's go →</button>
+      </div>
+    </div>
+
+    <!-- ── COMPLETION OVERLAY ─────────────────────────────── -->
+    <div id="overlay-complete" class="overlay hidden">
+      <div class="overlay-box">
+        <div class="completion-icon">🎉</div>
+        <h2 class="completion-title">Session Complete!</h2>
+        <div class="completion-stats" id="completion-stats"></div>
+        <button class="btn-primary overlay-btn" onclick="finishSession()">Save &amp; Done</button>
+      </div>
+    </div>
+
+  </div><!-- #app -->
+  <script src="app.js"></script>
+</body>
+</html>
