@@ -128,23 +128,27 @@ function localDateStr(d = new Date()) {
 }
 function pad(n) { return String(n).padStart(2, '0'); }
 
-/* ── API ───────────────────────────────────────────── */
+/* ── Storage (localStorage) ────────────────────────── */
+const STORAGE_KEY = 'stretch-daily-sessions';
+
 async function loadSessions() {
   try {
-    const r = await fetch('/api/sessions');
-    sessions = await r.json();
+    const raw = localStorage.getItem(STORAGE_KEY);
+    sessions = raw ? JSON.parse(raw) : [];
   } catch (_) { sessions = []; }
 }
 
 async function saveSession(duration) {
+  const now = new Date();
+  const session = {
+    id: Date.now(),
+    date: localDateStr(now),
+    completedAt: now.toISOString(),
+    duration
+  };
+  sessions.push(session);
   try {
-    const r = await fetch('/api/sessions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ duration })
-    });
-    const s = await r.json();
-    sessions.push(s);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
   } catch (e) { console.error('Save failed', e); }
 }
 
