@@ -4,7 +4,7 @@
 const EXERCISES = [
   {
     name: 'Neck Mobility',
-    hint: 'Keep movements slow and gentle — never force it.',
+    hint: 'Ear to shoulder for tilts. Chin to chest and back for up/down. End with slow full circles.',
     steps: [
       { label: 'Tilt Right',  duration: 15, side: 'right' },
       { label: 'Tilt Left',   duration: 15, side: 'left'  },
@@ -14,7 +14,7 @@ const EXERCISES = [
   },
   {
     name: 'Shoulder Rolls + Chest Opener',
-    hint: 'Roll through the full range. Breathe out on the chest stretch.',
+    hint: 'Roll shoulders in large, slow circles. For the chest stretch, clasp hands behind your back and lift.',
     steps: [
       { label: '10 Rolls Forward', duration: 20, side: null },
       { label: '10 Rolls Back',    duration: 20, side: null },
@@ -23,14 +23,14 @@ const EXERCISES = [
   },
   {
     name: 'Cat-Cow',
-    hint: 'Inhale into Cow, exhale into Cat — 8 to 10 slow reps.',
+    hint: 'On all fours: arch your back up (Cat) as you exhale, drop your belly (Cow) as you inhale.',
     steps: [
       { label: 'Cat-Cow Flow', duration: 60, side: null }
     ]
   },
   {
     name: "Child's Pose",
-    hint: 'Breathe deeply into each position. Let gravity do the work.',
+    hint: 'Kneel and sink hips back toward heels, arms stretched forward. Walk hands to each side to open the lats.',
     steps: [
       { label: 'Center',      duration: 20, side: 'center' },
       { label: 'Reach Right', duration: 20, side: 'right'  },
@@ -39,7 +39,7 @@ const EXERCISES = [
   },
   {
     name: 'Thread the Needle',
-    hint: 'Melt your shoulder toward the floor. Repeat both sides.',
+    hint: 'On all fours, slide one arm under your body until your shoulder and cheek rest on the floor.',
     steps: [
       { label: 'Right Side', duration: 30, side: 'right' },
       { label: 'Left Side',  duration: 30, side: 'left'  },
@@ -49,7 +49,7 @@ const EXERCISES = [
   },
   {
     name: 'Trapezius & Shoulder Stretch',
-    hint: 'Keep the opposite shoulder relaxed and pressed down.',
+    hint: 'Drop your ear toward your shoulder. Press the opposite hand gently downward to deepen the stretch.',
     steps: [
       { label: 'Left Side',  duration: 30, side: 'left'  },
       { label: 'Right Side', duration: 30, side: 'right' }
@@ -57,7 +57,7 @@ const EXERCISES = [
   },
   {
     name: 'Seated Spinal Twist',
-    hint: 'Sit tall, then exhale slowly into the twist.',
+    hint: 'Sit tall, cross one leg over, place the opposite elbow on the outer knee, and rotate from the waist.',
     steps: [
       { label: 'Twist Left',  duration: 30, side: 'left'  },
       { label: 'Twist Right', duration: 30, side: 'right' }
@@ -65,7 +65,7 @@ const EXERCISES = [
   },
   {
     name: 'Wall Angels',
-    hint: 'Press your whole back flat against the wall — 8 to 10 slow reps.',
+    hint: 'Stand with your whole back flat on the wall. Arms at 90°, slide them up and down like a snow angel.',
     steps: [
       { label: 'Wall Angels', duration: 60, side: null }
     ]
@@ -375,7 +375,11 @@ async function finishSession() {
 function togglePause() {
   sess.paused = !sess.paused;
   document.getElementById('pause-btn').textContent = sess.paused ? 'Resume' : 'Pause';
-  if (!sess.paused) startTicking();
+  if (sess.paused) {
+    clearInterval(sess.intervalId);
+  } else {
+    startTicking();
+  }
 }
 
 function skipStep() {
