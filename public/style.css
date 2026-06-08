@@ -439,5 +439,24 @@ html, body {
   line-height: 1.7;
 }
 
+/* Recovery overlay */
+.overlay-title { font-size: 1.8rem; font-weight: 800; color: var(--primary-dk); margin-bottom: 10px; }
+.recover-msg   { font-size: .95rem; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+.recover-info  {
+  background: var(--primary-lt);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 24px;
+  font-size: .95rem;
+  color: var(--text);
+  line-height: 1.6;
+}
+.overlay-secondary-btn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  text-align: center;
+}
+
 /* ── Utility ───────────────────────────────────────── */
 .hidden { display: none !important; }

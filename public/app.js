@@ -89,8 +89,50 @@ const sess = {
   sessionStart: 0,
   intervalId: null,
   transitionTimer: null,
-  transitionCountdown: null
+  transitionCountdown: null,
+  _hiddenDuringSession: false
 };
+
+/* ── Wake Lock ─────────────────────────────────────── */
+let wakeLock = null;
+
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch (_) { /* denied or unavailable */ }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release(); wakeLock = null; }
+}
+
+/* ── Session persistence ───────────────────────────── */
+const SESSION_KEY = 'stretch_session_state';
+
+function saveSessionState() {
+  if (!sess.sessionStart) return;
+  localStorage.setItem(SESSION_KEY, JSON.stringify({
+    exerciseIdx:  sess.exerciseIdx,
+    stepIdx:      sess.stepIdx,
+    timeLeft:     sess.timeLeft,
+    totalTime:    sess.totalTime,
+    sessionStart: sess.sessionStart,
+    savedAt:      Date.now()
+  }));
+}
+
+function clearSessionState() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+function loadSessionState() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) { return null; }
+}
 
 /* ── Audio ─────────────────────────────────────────── */
 let audioCtx = null;
@@ -231,6 +273,7 @@ function renderHome() {
 /* ── SESSION ───────────────────────────────────────── */
 function startSession() {
   ensureAudio();
+  clearSessionState();
   sess.exerciseIdx  = 0;
   sess.stepIdx      = 0;
   sess.paused       = false;
@@ -244,16 +287,17 @@ function startSession() {
   ring.setAttribute('stroke-dasharray', CIRCUMFERENCE);
   ring.setAttribute('stroke-dashoffset', '0');
 
+  requestWakeLock();
   showView('session');
   loadStep();
 }
 
-function loadStep() {
+function loadStep(resumeTimeLeft = null) {
   const ex   = EXERCISES[sess.exerciseIdx];
   const step = ex.steps[sess.stepIdx];
 
-  sess.timeLeft  = step.duration;
   sess.totalTime = step.duration;
+  sess.timeLeft  = (resumeTimeLeft !== null && resumeTimeLeft > 0) ? resumeTimeLeft : step.duration;
 
   // Progress bar (by exercise)
   const pct = (sess.exerciseIdx / EXERCISES.length) * 100;
@@ -368,6 +412,9 @@ function showCompletion() {
 async function finishSession() {
   document.getElementById('overlay-complete').classList.add('hidden');
   const duration = Math.round((Date.now() - sess.sessionStart) / 1000);
+  releaseWakeLock();
+  clearSessionState();
+  sess.sessionStart = 0;
   await saveSession(duration);
   showView('home');
 }
@@ -397,6 +444,9 @@ function quitSession() {
   clearInterval(sess.transitionCountdown);
   document.getElementById('overlay-transition').classList.add('hidden');
   document.getElementById('overlay-complete').classList.add('hidden');
+  releaseWakeLock();
+  clearSessionState();
+  sess.sessionStart = 0;
   showView('home');
 }
 
@@ -456,8 +506,81 @@ function renderHistory() {
   `;
 }
 
+/* ── Session recovery ──────────────────────────────── */
+let _savedState = null;
+
+function showRecoveryDialog(saved) {
+  // Guard against out-of-bounds indices from corrupted state
+  if (saved.exerciseIdx >= EXERCISES.length) { clearSessionState(); return; }
+  const ex   = EXERCISES[saved.exerciseIdx];
+  if (saved.stepIdx >= ex.steps.length) { clearSessionState(); return; }
+  const step = ex.steps[saved.stepIdx];
+  _savedState = saved;
+  document.getElementById('recover-info').innerHTML =
+    `<strong>${ex.name}</strong> &middot; ${step.label}<br>${saved.timeLeft}s remaining`;
+  document.getElementById('overlay-recover').classList.remove('hidden');
+}
+
+function recoverSession() {
+  document.getElementById('overlay-recover').classList.add('hidden');
+  if (!_savedState) { showView('home'); return; }
+  const s    = _savedState;
+  _savedState = null;
+  sess.exerciseIdx  = s.exerciseIdx;
+  sess.stepIdx      = s.stepIdx;
+  sess.paused       = false;
+  sess.sessionStart = s.sessionStart;
+  clearInterval(sess.intervalId);
+  clearTimeout(sess.transitionTimer);
+  clearInterval(sess.transitionCountdown);
+  const ring = document.getElementById('ring-fg');
+  ring.setAttribute('stroke-dasharray', CIRCUMFERENCE);
+  ring.setAttribute('stroke-dashoffset', '0');
+  clearSessionState();
+  ensureAudio();
+  requestWakeLock();
+  showView('session');
+  loadStep(s.timeLeft);
+}
+
+function discardSession() {
+  document.getElementById('overlay-recover').classList.add('hidden');
+  _savedState       = null;
+  sess.sessionStart = 0;
+  clearSessionState();
+  showView('home');
+}
+
+/* ── Visibility & page-hide hooks ──────────────────── */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (sess.sessionStart) {
+      clearInterval(sess.intervalId);
+      clearInterval(sess.transitionCountdown);
+      clearTimeout(sess.transitionTimer);
+      document.getElementById('overlay-transition').classList.add('hidden');
+      sess._hiddenDuringSession = true;
+      saveSessionState();
+    }
+  } else {
+    if (sess._hiddenDuringSession) {
+      sess._hiddenDuringSession = false;
+      const saved = loadSessionState();
+      if (saved) showRecoveryDialog(saved);
+    } else if (sess.sessionStart) {
+      requestWakeLock();
+    }
+  }
+});
+
+window.addEventListener('pagehide', () => {
+  if (sess.sessionStart) saveSessionState();
+});
+
 /* ── Boot ──────────────────────────────────────────── */
 (async () => {
   await loadSessions();
   showView('home');
+  const saved = loadSessionState();
+  if (saved) showRecoveryDialog(saved);
 })();
