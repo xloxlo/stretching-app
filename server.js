@@ -24,7 +24,13 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json({ limit: '10kb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders(res, filePath) {
+    if (/\.(html|js|css)$/.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-cache');
+    }
+  }
+}));
 
 // Serialise writes to prevent race-condition data loss on concurrent requests
 let writeQueue = Promise.resolve();
