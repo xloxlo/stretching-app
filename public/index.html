@@ -109,6 +109,18 @@
       </div>
     </div>
 
+    <!-- ── SESSION RECOVERY OVERLAY ─────────────────────── -->
+    <div id="overlay-recover" class="overlay hidden">
+      <div class="overlay-box">
+        <div class="overlay-check">⏸</div>
+        <h2 class="overlay-title">Session Paused</h2>
+        <p class="recover-msg">You left mid-session. Continue where you left off?</p>
+        <div class="recover-info" id="recover-info"></div>
+        <button class="btn-primary overlay-btn" onclick="recoverSession()">Continue Session</button>
+        <button class="btn-secondary overlay-secondary-btn" onclick="discardSession()">Start Fresh</button>
+      </div>
+    </div>
+
     <!-- ── COMPLETION OVERLAY ─────────────────────────────── -->
     <div id="overlay-complete" class="overlay hidden">
       <div class="overlay-box">
