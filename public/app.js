@@ -146,12 +146,71 @@ function loadSessionState() {
 /* ── Audio ─────────────────────────────────────────── */
 let audioCtx = null;
 
+const SOUND_KEY = 'stretch_sound';
+let soundEnabled = true;
+let soundMultiplier = 1.0;
+
+function loadSoundSettings() {
+  try {
+    const raw = localStorage.getItem(SOUND_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (typeof d.enabled === 'boolean') soundEnabled = d.enabled;
+    if (typeof d.multiplier === 'number' && d.multiplier >= 0 && d.multiplier <= 1) {
+      soundMultiplier = d.multiplier;
+    }
+  } catch (_) {}
+}
+
+function saveSoundSettings() {
+  localStorage.setItem(SOUND_KEY, JSON.stringify({ enabled: soundEnabled, multiplier: soundMultiplier }));
+}
+
+const SVG_SOUND_ON  = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`;
+const SVG_SOUND_OFF = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
+
+function updateSoundUI() {
+  const muteToggle = document.getElementById('mute-toggle');
+  const slider     = document.getElementById('volume-slider');
+  const pct        = document.getElementById('volume-pct');
+  const volBtn     = document.getElementById('volume-btn');
+  if (!muteToggle) return;
+
+  const active = soundEnabled && soundMultiplier > 0;
+  const sliderVal = Math.round(soundMultiplier * 100);
+
+  muteToggle.innerHTML = active ? SVG_SOUND_ON : SVG_SOUND_OFF;
+  volBtn.innerHTML     = active ? SVG_SOUND_ON : SVG_SOUND_OFF;
+  slider.value         = sliderVal;
+  pct.textContent      = sliderVal + '%';
+}
+
+function toggleVolumeMenu() {
+  document.getElementById('volume-menu').classList.toggle('hidden');
+  updateSoundUI();
+}
+
+function toggleMute() {
+  soundEnabled = !soundEnabled;
+  saveSoundSettings();
+  updateSoundUI();
+}
+
+function setVolume(value) {
+  soundMultiplier = parseInt(value, 10) / 100;
+  soundEnabled    = soundMultiplier > 0;
+  saveSoundSettings();
+  updateSoundUI();
+}
+
 function ensureAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
 }
 
 function beep(freq = 760, dur = 0.38, vol = 0.28) {
+  if (!soundEnabled || soundMultiplier <= 0) return;
+  const actualVol = vol * soundMultiplier;
   try {
     ensureAudio();
     const osc  = audioCtx.createOscillator();
@@ -160,7 +219,7 @@ function beep(freq = 760, dur = 0.38, vol = 0.28) {
     gain.connect(audioCtx.destination);
     osc.type = 'sine';
     osc.frequency.value = freq;
-    gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gain.gain.setValueAtTime(actualVol, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
     osc.start(audioCtx.currentTime);
     osc.stop(audioCtx.currentTime + dur);
@@ -239,7 +298,11 @@ function bestStreak() {
 /* ── View router ───────────────────────────────────── */
 function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById(`view-${name}`).classList.add('active');
+  const viewEl = document.getElementById(`view-${name}`);
+  viewEl.classList.add('active');
+  viewEl.scrollTop = 0;
+  const volMenu = document.getElementById('volume-menu');
+  if (volMenu) volMenu.classList.add('hidden');
   if (name === 'home')    renderHome();
   if (name === 'history') renderHistory();
 }
@@ -604,8 +667,10 @@ window.addEventListener('pagehide', () => {
 
 /* ── Boot ──────────────────────────────────────────── */
 (async () => {
+  loadSoundSettings();
   await loadSessions();
   showView('home');
+  updateSoundUI();
   const saved = loadSessionState();
   if (saved) showRecoveryDialog(saved);
 })();
