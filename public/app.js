@@ -130,7 +130,16 @@ function clearSessionState() {
 function loadSessionState() {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    if (
+      !Number.isInteger(d.exerciseIdx) || d.exerciseIdx < 0 ||
+      !Number.isInteger(d.stepIdx)     || d.stepIdx < 0 ||
+      typeof d.timeLeft     !== 'number' || d.timeLeft < 0 ||
+      typeof d.totalTime    !== 'number' || d.totalTime <= 0 ||
+      typeof d.sessionStart !== 'number' || d.sessionStart <= 0
+    ) return null;
+    return d;
   } catch (_) { return null; }
 }
 
@@ -174,6 +183,7 @@ function pad(n) { return String(n).padStart(2, '0'); }
 async function loadSessions() {
   try {
     const r = await fetch('/api/sessions');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
     sessions = await r.json();
   } catch (_) { sessions = []; }
 }
@@ -185,9 +195,13 @@ async function saveSession(duration) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ duration })
     });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const s = await r.json();
     sessions.push(s);
-  } catch (e) { console.error('Save failed', e); }
+  } catch (e) {
+    console.error('Save failed', e);
+    alert('Session complete, but it could not be saved. Check your connection.');
+  }
 }
 
 /* ── Stats helpers ─────────────────────────────────── */
@@ -516,8 +530,19 @@ function showRecoveryDialog(saved) {
   if (saved.stepIdx >= ex.steps.length) { clearSessionState(); return; }
   const step = ex.steps[saved.stepIdx];
   _savedState = saved;
-  document.getElementById('recover-info').innerHTML =
-    `<strong>${ex.name}</strong> &middot; ${step.label}<br>${saved.timeLeft}s remaining`;
+
+  // Build DOM safely — never inject saved values as HTML
+  const info = document.getElementById('recover-info');
+  const strong = document.createElement('strong');
+  strong.textContent = ex.name;
+  const br = document.createElement('br');
+  info.replaceChildren(
+    strong,
+    document.createTextNode(` · ${step.label}`),
+    br,
+    document.createTextNode(`${Math.round(saved.timeLeft)}s remaining`)
+  );
+
   document.getElementById('overlay-recover').classList.remove('hidden');
 }
 
